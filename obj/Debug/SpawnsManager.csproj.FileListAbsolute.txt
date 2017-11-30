@@ -1,0 +1,2 @@
+C:\Users\Michiel\Desktop\Visual studio projects\SpawnsManager\SpawnsManager\obj\Debug\SpawnsManager.csprojResolveAssemblyReference.cache
+C:\Users\Michiel\Desktop\Visual studio projects\SpawnsManager\SpawnsManager\obj\Debug\SpawnsManager.csproj.CoreCompileInputs.cache
