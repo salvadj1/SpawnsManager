@@ -6,8 +6,8 @@ using System.IO;
 using Fougerite;
 using Fougerite.Events;
 using UnityEngine;
-using RustProto;
-using Facepunch.ID;
+//using RustProto;
+//using Facepunch.ID;
 
 namespace SpawnsManager
 {
@@ -87,7 +87,7 @@ namespace SpawnsManager
             float x = player.X;
             float y = player.Y;
             float z = player.Z;
-            player.TeleportTo(;
+            //player.TeleportTo(;
         }   //////  still under development
     }
 }
