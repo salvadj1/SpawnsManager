@@ -30,9 +30,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="assembly-csharp">
-      <HintPath>..\..\..\Server\rust_server_Data\Managed\assembly-csharp.dll</HintPath>
-    </Reference>
     <Reference Include="Fougerite">
       <HintPath>.\Fougerite.dll</HintPath>
     </Reference>

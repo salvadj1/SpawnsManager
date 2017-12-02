@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpawnsManager", "SpawnsManager.csproj", "{86505D6F-4806-42D3-8C33-C15BD1D83543}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{86505D6F-4806-42D3-8C33-C15BD1D83543}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{86505D6F-4806-42D3-8C33-C15BD1D83543}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{86505D6F-4806-42D3-8C33-C15BD1D83543}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{86505D6F-4806-42D3-8C33-C15BD1D83543}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
