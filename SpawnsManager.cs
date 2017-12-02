@@ -6,109 +6,141 @@ using System.IO;
 using Fougerite;
 using Fougerite.Events;
 using UnityEngine;
-//using RustProto;
-//using Facepunch.ID;
 
 namespace SpawnsManager
 {
     public class SpawnsManager : Fougerite.Module
     {
         public override string Name { get { return "SpawnsManager"; } }
-        public override string Author { get { return "ice cold"; } }
+        public override string Author { get { return "ice cold & salva/juli"; } }
         public override string Description { get { return "Recreate the spawns of rust"; } }
         public override Version Version { get { return new Version("1.0"); } }
 
         public string green = "[color #82FA58]";
         public string red = "[color #B40404]";
-        public static IniParser Settings;
-
+        public static IniParser ini;
+        public List<Vector3> Spawns = new List<Vector3>();
 
         public override void Initialize()
         {
             if (!File.Exists(Path.Combine(ModuleFolder, "Spawns.ini")))
             {
                 File.Create(Path.Combine(ModuleFolder, "Spawns.ini")).Dispose();
-                Settings = new IniParser(Path.Combine(ModuleFolder, "Spawns.ini"));
-                Settings.AddSetting("Spawns", "Spawn1", "6600, 356, -4400");
-                Settings.Save();
+                ini = new IniParser(Path.Combine(ModuleFolder, "Spawns.ini"));
+                ini.AddSetting("Spawns", "0", "6600, 356, -4400");
+                ini.Save();
             }
             Fougerite.Hooks.OnCommand += OnCommand;
             Fougerite.Hooks.OnPlayerSpawned += OnPlayerSpawned;
-            Settings = new IniParser(Path.Combine(ModuleFolder, "Spawns.ini"));
+
+            RefreshSpawns(null);
         }
         public override void DeInitialize()
         {
-            Fougerite.Hooks.OnCommand += OnCommand;
-            Fougerite.Hooks.OnPlayerSpawned += OnPlayerSpawned;
+            Fougerite.Hooks.OnCommand -= OnCommand;
+            Fougerite.Hooks.OnPlayerSpawned -= OnPlayerSpawned;
         }
-        public void OnCommand(Fougerite.Player Player, string cmd, string[] args)
+        public void OnCommand(Fougerite.Player pl, string cmd, string[] args)
         {
-            if (cmd == "spawnshelp")
+            if (cmd == "spawns")
             {
-                if (!Player.Admin)
+                if (!pl.Admin)
                 {
-                    Player.MessageFrom("SpawnsManager", red + "You are not an administrator to use this command.");
+                    pl.MessageFrom("SpawnsManager", red + "You are not an administrator to use this command.");
                     return;
                 }
+
                 else
                 {
-                    Player.MessageFrom("SpawnsManager", green + "/spawnadd - adds a spawn to the random spawns.");
-                    Player.MessageFrom("SpawnsManager", green + "/spawndel - MAKE SURE YOU TYPE THE FULL NAME OF THE SPAWN TO DELETE IT.");
-                    Player.MessageFrom("SpawnsManager", green + "/spawnsreload - reloads the spawns list.");
+                    pl.MessageFrom("SpawnsManager", green + "/spawnadd - adds a spawn to the random spawns.");
+                    pl.MessageFrom("SpawnsManager", green + "/spawndel - MAKE SURE YOU TYPE THE FULL NAME OF THE SPAWN TO DELETE IT.");
+                    pl.MessageFrom("SpawnsManager", green + "/spawnsreload - reloads the spawns list.");
                 }
             }
-            else if (cmd == "spawnadd")
+            else if (cmd == "spawnadd")// IT IS NOT NECESSARY TO CREATE A NAME FOR EACH SPAWN, WE WILL MAKE THEM GENERATED AUTOMATICALLY AND SUCCESSIVE example: 0 1 2 3 4
             {
-                if (!Player.Admin)
+                if (!pl.Admin)
                 {
-                    Player.MessageFrom("SpawnsManager", red + "You are not an administrator to use this command.");
+                    pl.MessageFrom("SpawnsManager", red + "You are not an administrator to use this command.");
+                    return;
                 }
-                else if (args.Length.Equals(0))
-                {
-                    Player.MessageFrom("SpawnsManager", green + "Makes sure you choose a name");
-                }
-                else
-                {
-                    if (!Player.Equals(null))
-                    {
-                        float x = Player.X;
-                        float y = Player.Y;
-                        float z = Player.Z;
-                        Settings.AddSetting(args[0], (Player.X) + ", " + (Player.Y) + ", " + (Player.Z));
-                        Settings.Save();
-                        Player.MessageFrom("SpawnsManager", green + "Spawn added");
-                    }
-                }
+
+                AddSpawn(pl);
             }
             else if (cmd == "spawndel")
             {
-                if (!Player.Admin)
+                if (!pl.Admin)
                 {
-                    Player.MessageFrom("SpawnsManager", red + "You dont have acces to use this command.");
+                    pl.MessageFrom("SpawnsManager", red + "You dont have acces to use this command.");
+                    return;
                 }
-                else if (args.Length.Equals(0))
+                
+                if (args.Length > 0)
                 {
-                    Player.MessageFrom("SpawnsManager", green + "Makes sure you choose a name");
+                    DelSpawn(pl, args[0]);
                 }
                 else
                 {
-                    if (!Player.Equals(null))
-                    {
-                        Settings.DeleteSetting(args[0], (Player.X) + ", " + (Player.Y) + ", " + (Player.Z));
-                        Settings.Save();
-                        Player.Notice("☢", "Spawn has been succesfully deleted");                    
-                    }
+                    pl.MessageFrom("SpawnsManager", green + "Makes sure you choose a number");
+                    return;
                 }
             }
+            else if (cmd == "spawnsreload")
+            {
+                if (!pl.Admin)
+                {
+                    pl.MessageFrom("SpawnsManager", red + "You dont have acces to use this command.");
+                    return;
+                }
+
+                RefreshSpawns(pl);
+            }
         }  
-        public void OnPlayerSpawned(Fougerite.Player player, SpawnEvent se)
+        public void OnPlayerSpawned(Fougerite.Player pl, SpawnEvent se)
         {
-            var location = player.Location;
-            float x = player.X;
-            float y = player.Y;
-            float z = player.Z;
-            //player.TeleportTo(;
-        }   //////  still under development
+            RandomSpawn(pl);
+        }
+        // /////////////////////////////////methods/////////////////////////////////
+        public void AddSpawn(Fougerite.Player pl)
+        {
+            pl.MessageFrom("SpawnsManager", green + "Spawn added");
+        }
+        public void DelSpawn(Fougerite.Player pl, string number)
+        {
+            //CHECK IF NUMBER OF SPAWN EXIST
+            pl.MessageFrom("SpawnsManager", green + "Spawn deleted");
+        }
+        public void RandomSpawn(Fougerite.Player pl)
+        {
+            //Randomize the spawn of all of the available list
+
+            //make sure there are no houses near the spawn
+
+            //Teleport player
+           
+        }
+        public void RefreshSpawns(Fougerite.Player pl)
+        {
+            Spawns.Clear();
+            ini = new IniParser(Path.Combine(ModuleFolder, "Spawns.ini"));
+            int total = 0;
+            foreach (var x in ini.EnumSection("Spawns"))
+            {
+                string loc;
+                loc = ini.GetSetting("Spawns", total.ToString());
+                Spawns.Add(Util.GetUtil().ConvertStringToVector3(loc));
+                total += 1;
+            }
+
+            if (pl != null)//CHECK THIS IF GIVE ERROR ON SERVER LOAD
+            {
+                Logger.Log("Spawn List Reloaded (Found " + total.ToString() + "locations");
+            }
+            else
+            {
+                pl.MessageFrom("SpawnsManager", green + "Spawn List Reloaded (Found " + total.ToString() + "locations");
+            }
+        }
     }
 }
 
