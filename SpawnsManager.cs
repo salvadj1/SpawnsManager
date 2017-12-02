@@ -53,7 +53,7 @@ namespace SpawnsManager
                 else
                 {
                     Player.MessageFrom("SpawnsManager", green + "/spawnadd - adds a spawn to the random spawns.");
-                    Player.MessageFrom("SpawnsManager", green + "/spawndel - deletes a spawn.");
+                    Player.MessageFrom("SpawnsManager", green + "/spawndel - MAKE SURE YOU TYPE THE FULL NAME OF THE SPAWN TO DELETE IT.");
                     Player.MessageFrom("SpawnsManager", green + "/spawnsreload - reloads the spawns list.");
                 }
             }
@@ -65,7 +65,7 @@ namespace SpawnsManager
                 }
                 else if (args.Length.Equals(0))
                 {
-                    Player.MessageFrom("SpawnsManager", green + "Makes sure you shoose a name");
+                    Player.MessageFrom("SpawnsManager", green + "Makes sure you choose a name");
                 }
                 else
                 {
@@ -80,7 +80,27 @@ namespace SpawnsManager
                     }
                 }
             }
-        }
+            else if (cmd == "spawndel")
+            {
+                if (!Player.Admin)
+                {
+                    Player.MessageFrom("SpawnsManager", red + "You dont have acces to use this command.");
+                }
+                else if (args.Length.Equals(0))
+                {
+                    Player.MessageFrom("SpawnsManager", green + "Makes sure you choose a name");
+                }
+                else
+                {
+                    if (!Player.Equals(null))
+                    {
+                        Settings.DeleteSetting(args[0], (Player.X) + ", " + (Player.Y) + ", " + (Player.Z));
+                        Settings.Save();
+                        Player.Notice("☢", "Spawn has been succesfully deleted");                    
+                    }
+                }
+            }
+        }  
         public void OnPlayerSpawned(Fougerite.Player player, SpawnEvent se)
         {
             var location = player.Location;
