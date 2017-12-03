@@ -27,13 +27,13 @@ namespace SpawnsManager
             {
                 File.Create(Path.Combine(ModuleFolder, "Spawns.ini")).Dispose();
                 ini = new IniParser(Path.Combine(ModuleFolder, "Spawns.ini"));
-                ini.AddSetting("Spawns", "0", "6600, 356, -4400");
+                ini.AddSetting("Spawns", "1", "6600, 356, -4400");
                 ini.Save();
             }
             Fougerite.Hooks.OnCommand += OnCommand;
             Fougerite.Hooks.OnPlayerSpawned += OnPlayerSpawned;
 
-            RefreshSpawns(null);
+            LoadSpawns();
         }
         public override void DeInitialize()
         {
@@ -131,15 +131,22 @@ namespace SpawnsManager
                 Spawns.Add(Util.GetUtil().ConvertStringToVector3(loc));
                 total += 1;
             }
-
-            if (pl != null)//CHECK THIS IF GIVE ERROR ON SERVER LOAD
+            pl.MessageFrom("SpawnsManager", green + "Spawn List Reloaded (Found " + total.ToString() + " locations)");
+        }
+        public void LoadSpawns()
+        {
+            Spawns.Clear();
+            ini = new IniParser(Path.Combine(ModuleFolder, "Spawns.ini"));
+            int total = 0;
+            foreach (var x in ini.EnumSection("Spawns"))
             {
-                Logger.Log("Spawn List Reloaded (Found " + total.ToString() + "locations");
+                string loc;
+                loc = ini.GetSetting("Spawns", total.ToString());
+                Spawns.Add(Util.GetUtil().ConvertStringToVector3(loc));
+                total += 1;
             }
-            else
-            {
-                pl.MessageFrom("SpawnsManager", green + "Spawn List Reloaded (Found " + total.ToString() + "locations");
-            }
+            Logger.Log("Spawn List Reloaded (Found " + total.ToString() + " locations)");
+            return;
         }
     }
 }
