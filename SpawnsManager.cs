@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,143 +11,173 @@ namespace SpawnsManager
 {
     public class SpawnsManager : Fougerite.Module
     {
+        #region VARS
         public override string Name { get { return "SpawnsManager"; } }
-        public override string Author { get { return "ice cold & salva/juli"; } }
+        public override string Author { get { return "salva/juli & ice cold"; } }
         public override string Description { get { return "Recreate the spawns of rust"; } }
         public override Version Version { get { return new Version("1.0"); } }
 
         public string green = "[color #82FA58]";
         public string red = "[color #B40404]";
-        public static IniParser ini;
-        public List<Vector3> Spawns = new List<Vector3>();
+
+        public List<string> spawns;
+        public System.Random rnd;
+        public System.IO.StreamWriter spawnsfile;
+        #endregion VARS
 
         public override void Initialize()
         {
-            if (!File.Exists(Path.Combine(ModuleFolder, "Spawns.ini")))
+            spawns = new List<string>();
+            rnd = new System.Random();
+
+            if (!File.Exists(Path.Combine(ModuleFolder, "Spawns.txt")))
             {
-                File.Create(Path.Combine(ModuleFolder, "Spawns.ini")).Dispose();
-                ini = new IniParser(Path.Combine(ModuleFolder, "Spawns.ini"));
-                ini.AddSetting("Spawns", "1", "6600, 356, -4400");
-                ini.Save();
+                File.Create(Path.Combine(ModuleFolder, "Spawns.txt")).Dispose();
+                spawnsfile = new System.IO.StreamWriter(Path.Combine(ModuleFolder, "Spawns.txt"), true);
+                spawnsfile.WriteLine("(4668.0, 445.0, -3908.0)"); //add by default at least one spawn point in next valley north
+                spawnsfile.Close();
             }
             Fougerite.Hooks.OnCommand += OnCommand;
             Fougerite.Hooks.OnPlayerSpawned += OnPlayerSpawned;
-
-            LoadSpawns();
+            Hooks.OnPlayerDisconnected += OnPlayerDisconnected;
+            ReloadSpawns();
         }
         public override void DeInitialize()
         {
             Fougerite.Hooks.OnCommand -= OnCommand;
             Fougerite.Hooks.OnPlayerSpawned -= OnPlayerSpawned;
+            Hooks.OnPlayerDisconnected -= OnPlayerDisconnected;
         }
+        #region HOOKS
         public void OnCommand(Fougerite.Player pl, string cmd, string[] args)
         {
-            if (cmd == "spawns")
+            if (!pl.Admin) { return; }
+            if (cmd == "spawn")
             {
-                if (!pl.Admin)
+                if (args.Length == 0)
                 {
-                    pl.MessageFrom("SpawnsManager", red + "You are not an administrator to use this command.");
-                    return;
-                }
-
-                else
-                {
-                    pl.MessageFrom("SpawnsManager", green + "/spawnadd - adds a spawn to the random spawns.");
-                    pl.MessageFrom("SpawnsManager", green + "/spawndel - MAKE SURE YOU TYPE THE FULL NAME OF THE SPAWN TO DELETE IT.");
-                    pl.MessageFrom("SpawnsManager", green + "/spawnsreload - reloads the spawns list.");
-                }
-            }
-            else if (cmd == "spawnadd")// IT IS NOT NECESSARY TO CREATE A NAME FOR EACH SPAWN, WE WILL MAKE THEM GENERATED AUTOMATICALLY AND SUCCESSIVE example: 0 1 2 3 4
-            {
-                if (!pl.Admin)
-                {
-                    pl.MessageFrom("SpawnsManager", red + "You are not an administrator to use this command.");
-                    return;
-                }
-
-                AddSpawn(pl);
-            }
-            else if (cmd == "spawndel")
-            {
-                if (!pl.Admin)
-                {
-                    pl.MessageFrom("SpawnsManager", red + "You dont have acces to use this command.");
-                    return;
-                }
-                
-                if (args.Length > 0)
-                {
-                    DelSpawn(pl, args[0]);
+                    pl.MessageFrom(Name, green + "/spawn - adds a spawn to the random spawns.");
+                    pl.MessageFrom(Name, green + "/spawn add - adds a spawn to the random spawns.");
+                    //pl.MessageFrom("SpawnsManager", green + "/spawn del - MAKE SURE YOU TYPE THE FULL NAME OF THE SPAWN TO DELETE IT.");
+                    pl.MessageFrom(Name, green + "/spawn reload - reloads the spawns list.");
                 }
                 else
                 {
-                    pl.MessageFrom("SpawnsManager", green + "Makes sure you choose a number");
-                    return;
+                    if (args[0] == "add")
+                    {
+                        AddSpawn(pl);
+                    }
+                    else if (args[0] == "reload")
+                    {
+                        ReloadSpawns();
+                        pl.MessageFrom(Name, green + "Spawn list Reloaded ,found (" + spawns.Count + ") points.");
+                    }
+                    else if (args[0] == "test")
+                    {
+                        tryagain:
+                        Vector3 location = GivemeRandomSpawn();
+                        if (IsCloseOfStructure(location))
+                        {
+                            pl.Message("TEST: cant spawn on structure, serching another location");
+                            goto tryagain;
+                        }
+                        else
+                        {
+                            pl.SafeTeleportTo(location);
+                        }
+                    }
                 }
             }
-            else if (cmd == "spawnsreload")
-            {
-                if (!pl.Admin)
-                {
-                    pl.MessageFrom("SpawnsManager", red + "You dont have acces to use this command.");
-                    return;
-                }
-
-                RefreshSpawns(pl);
-            }
-        }  
+        }
         public void OnPlayerSpawned(Fougerite.Player pl, SpawnEvent se)
         {
-            RandomSpawn(pl);
-        }
-        // /////////////////////////////////methods/////////////////////////////////
-        public void AddSpawn(Fougerite.Player pl)
-        {
-            pl.MessageFrom("SpawnsManager", green + "Spawn added");
-        }
-        public void DelSpawn(Fougerite.Player pl, string number)
-        {
-            //CHECK IF NUMBER OF SPAWN EXIST
-            pl.MessageFrom("SpawnsManager", green + "Spawn deleted");
-        }
-        public void RandomSpawn(Fougerite.Player pl)
-        {
-            //Randomize the spawn of all of the available list
-
-            //make sure there are no houses near the spawn
-
-            //Teleport player
-           
-        }
-        public void RefreshSpawns(Fougerite.Player pl)
-        {
-            Spawns.Clear();
-            ini = new IniParser(Path.Combine(ModuleFolder, "Spawns.ini"));
-            int total = 0;
-            foreach (var x in ini.EnumSection("Spawns"))
+            if (!se.CampUsed)
             {
-                string loc;
-                loc = ini.GetSetting("Spawns", total.ToString());
-                Spawns.Add(Util.GetUtil().ConvertStringToVector3(loc));
-                total += 1;
+                if (DataStore.GetInstance().ContainsKey("SpawnManager", pl.UID))
+                {
+                    if (pl.Location != (Vector3)DataStore.GetInstance().Get("SpawnManager", pl.UID))
+                    {
+                        TryTeleportPlayer(pl);
+                    }
+                }
+                else
+                {
+                    TryTeleportPlayer(pl);
+                }
             }
-            pl.MessageFrom("SpawnsManager", green + "Spawn List Reloaded (Found " + total.ToString() + " locations)");
         }
-        public void LoadSpawns()
+        public void OnPlayerDisconnected(Fougerite.Player pl)
         {
-            Spawns.Clear();
-            ini = new IniParser(Path.Combine(ModuleFolder, "Spawns.ini"));
-            int total = 0;
-            foreach (var x in ini.EnumSection("Spawns"))
+            if (DataStore.GetInstance().ContainsKey("SpawnManager", pl.UID))
             {
-                string loc;
-                loc = ini.GetSetting("Spawns", total.ToString());
-                Spawns.Add(Util.GetUtil().ConvertStringToVector3(loc));
-                total += 1;
+                DataStore.GetInstance().Remove("SpawnManager", pl.UID);
+                DataStore.GetInstance().Add("SpawnManager", pl.UID, pl.DisconnectLocation);
             }
-            Logger.Log("Spawn List Reloaded (Found " + total.ToString() + " locations)");
+            else
+            {
+                DataStore.GetInstance().Add("SpawnManager", pl.UID, pl.DisconnectLocation);
+            }
+        }
+        #endregion HOOKS
+        #region METHODS
+        public void ReloadSpawns()
+        {
+            spawns.Clear();
+            foreach (var xx in File.ReadAllLines(Path.Combine(ModuleFolder, "Spawns.txt")))
+            {
+                spawns.Add(xx);
+            }
             return;
         }
+        public void AddSpawn(Fougerite.Player pl)
+        {
+            spawnsfile = new System.IO.StreamWriter(Path.Combine(ModuleFolder, "Spawns.txt"), true);
+            spawnsfile.WriteLine(pl.Location.ToString());
+            spawnsfile.Close();
+            pl.MessageFrom(Name, green + "Spawn added");
+        }
+        public void TryTeleportPlayer(Fougerite.Player pl)
+        {
+        tryagain:
+            Vector3 location = GivemeRandomSpawn();
+            if (IsCloseOfStructure(location))
+            {
+                //pl.Message("CANT TP ON STRUCTURE");
+                goto tryagain; //try found another spawn point
+            }
+            else
+            {
+                pl.SafeTeleportTo(location);
+            }
+        }
+        public Vector3 GivemeRandomSpawn()
+        {
+            int TotalSpawnPoints = spawns.Count;
+            int RandomPoint = rnd.Next(0, TotalSpawnPoints);
+            Vector3 location = Util.GetUtil().ConvertStringToVector3(spawns[RandomPoint]);
+            int RandomDistanceX = rnd.Next(-10, 10);
+            int RandomDistanceZ = rnd.Next(-10, 10);
+            Vector3 FinalLocation = new Vector3(location.x + RandomDistanceX, location.y, location.z + RandomDistanceZ);
+            return FinalLocation;
+        }
+        public bool IsCloseOfStructure(Vector3 location)
+        {
+            var objects = Physics.OverlapSphere(location, 3f);
+            var names = new List<string>();
+            foreach (var x in objects.Where(x => !names.Contains(x.name.ToLower())))
+            {
+                names.Add(x.name.ToLower());
+            }
+            string ncollected = string.Join(" ", names.ToArray());
+            if (ncollected.Contains("meshbatch") || ncollected.Contains("shelter"))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        #endregion METHODS
     }
 }
-
