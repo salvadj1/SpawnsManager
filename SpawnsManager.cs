@@ -125,6 +125,10 @@ namespace SpawnsManager
             spawns.Clear();
             foreach (var xx in File.ReadAllLines(Path.Combine(ModuleFolder, "Spawns.txt")))
             {
+                if (!xx.Contains("(") || xx =="")
+                {
+                    continue;
+                }
                 spawns.Add(xx);
             }
             return;
